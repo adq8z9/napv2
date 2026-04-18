@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>nap · Log In</title>
+<link rel="icon" type="image/png" href="nap.png">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f4f0; --surface: #ffffff; --border: #dddbd4;
+  --text: #1a1917; --text2: #6b6860; --text3: #a09e98;
+  --accent: #6d28d9; --accent-light: #ede9fe;
+  --mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+  --max: 560px;
+}
+body { background:var(--bg); color:var(--text); font-family:var(--mono); font-size:14px; line-height:1.6; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:0 16px 48px; }
+.site-header { width:100%; max-width:var(--max); padding:28px 0 20px; border-bottom:1px solid var(--border); margin-bottom:28px; display:flex; align-items:center; gap:14px; }
+.site-logo { font-size:18px; font-weight:600; color:var(--text); text-decoration:none; letter-spacing:-0.5px; }
+.site-logo span { color:var(--accent); }
+.page { width:100%; max-width:var(--max); display:flex; flex-direction:column; gap:24px; }
+.back-link { font-size:12px; color:var(--text3); text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
+.back-link:hover { color:var(--accent); }
+.section-label { font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--text3); margin-bottom:10px; }
+.status-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.status-row { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border); font-size:12px; }
+.status-row:last-child { border-bottom:none; }
+.status-dot { width:7px; height:7px; border-radius:50%; background:var(--border); flex-shrink:0; }
+.status-dot.on { background:var(--accent); }
+.status-key { color:var(--text3); width:80px; flex-shrink:0; }
+.status-val { color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.status-val.active { color:var(--accent); }
+.nav-menu { display:flex; flex-direction:column; gap:4px; }
+.nav-link { display:flex; align-items:center; gap:10px; padding:11px 14px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--text); text-decoration:none; font-size:13px; transition:border-color 0.15s, background 0.15s, color 0.15s; }
+.nav-link:hover { border-color:var(--accent); background:var(--accent-light); color:var(--accent); }
+.nav-icon { color:var(--text3); width:18px; text-align:center; flex-shrink:0; }
+.nav-link:hover .nav-icon { color:var(--accent); }
+.nav-desc { font-size:11px; color:var(--text3); margin-left:auto; }
+.nav-link:hover .nav-desc { color:var(--accent); opacity:0.7; }
+.nap-img { display:block; max-width:70px; opacity:0.65; }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <a class="site-logo" href="index.html">nap<span>_</span></a>
+  <!-- <img src="nap.png" alt="nap logo" class="nap-img"> -->
+</header>
+<main class="page">
+  <a class="back-link" href="index.html">← back</a>
+  <div>
+    <div class="section-label">Current Session</div>
+    <div class="status-card">
+      <div class="status-row">
+        <span class="status-dot" id="accountantDot"></span>
+        <span class="status-key">accountant</span>
+        <span class="status-val" id="accountantVal">not logged in</span>
+      </div>
+      <div class="status-row">
+        <span class="status-dot" id="ledgerDot"></span>
+        <span class="status-key">ledger</span>
+        <span class="status-val" id="ledgerVal">not selected</span>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="section-label">Nostr Log In</div>
+    <nav class="nav-menu">
+      <a class="nav-link" href="loginAccount.html">
+        <span class="nav-icon">→</span>
+        Account Log In
+        <span class="nav-desc">nsec / naddr</span>
+      </a>
+      <a class="nav-link" href="loginLedger.html">
+        <span class="nav-icon">⊟</span>
+        Ledger Log In
+        <span class="nav-desc">kind 37701</span>
+      </a>
+      <a class="nav-link" href="loginNWC.html">
+        <span class="nav-icon">⚡</span>
+        NWC Log In
+        <span class="nav-desc">nostr wallet connect</span>
+      </a>
+    </nav>
+  </div>
+  <img src="nap.png" alt="nap logo" class="nap-img">
+</main>
+<script>
+  try {
+    const loginDataString = localStorage.getItem("liKeypair");
+    const loginData = JSON.parse(loginDataString);
+    const ledger = sessionStorage.getItem('nostr_ledger');
+    const aVal = document.getElementById('accountantVal');
+    const aDot = document.getElementById('accountantDot');
+    if (loginData) {
+      aVal.textContent = loginData.npubShort;
+      aVal.classList.add('active');
+      aDot.classList.add('on');
+    } else {
+      aVal.textContent = 'not logged in';
+      aVal.classList.remove('active');
+      aDot.classList.remove('on');
+    }
+    const lVal = document.getElementById('ledgerVal');
+    const lDot = document.getElementById('ledgerDot');
+    if (ledger) {
+      lVal.textContent = ledger;
+      lVal.classList.add('active');
+      lDot.classList.add('on');
+    } else {
+      lVal.textContent = 'not selected';
+      lVal.classList.remove('active');
+      lDot.classList.remove('on');
+    }
+  } catch(e) {}
+</script>
+</body>
+</html>
