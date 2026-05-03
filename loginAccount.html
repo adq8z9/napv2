@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>nap · Account Log In</title>
 <link rel="icon" type="image/png" href="nap.png">
+<script src="index_script_logindata.js"></script>
 <script src="nostr_tools.js"></script>
 <script src="loginAccount_script.js"></script>
+<script src="index_script_ledger.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -128,34 +130,14 @@ hr { border:none; border-top:1px solid var(--border); }
 </main>
 
 <script>
-function updateStatus() {
+function updateStatus2() {
+  console.log("updateStatus2 called.");
   try {
     const loginDataString = localStorage.getItem("liKeypair");
     const loginData = JSON.parse(loginDataString);
-    const ledger = sessionStorage.getItem('nostr_ledger');
-    const aVal = document.getElementById('accountantVal');
-    const aDot = document.getElementById('accountantDot');
-    const input = document.getElementById('nsecInput');
     if (loginData) {
-      aVal.textContent = loginData.npubShort;
       document.getElementById('nsecInput').value = loginData.nsec;
-      aVal.classList.add('active');
-      aDot.classList.add('on');
     } else {
-      aVal.textContent = 'not logged in';
-      aVal.classList.remove('active');
-      aDot.classList.remove('on');
-    }
-    const lVal = document.getElementById('ledgerVal');
-    const lDot = document.getElementById('ledgerDot');
-    if (ledger) {
-      lVal.textContent = ledger;
-      lVal.classList.add('active');
-      lDot.classList.add('on');
-    } else {
-      lVal.textContent = 'not selected';
-      lVal.classList.remove('active');
-      lDot.classList.remove('on');
     }
   } catch(e) {}
 }
@@ -174,6 +156,7 @@ function logout() {
 }
 
 updateStatus();
+updateStatus2();
 </script>
 </body>
 </html>

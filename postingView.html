@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>nap · View Postings</title>
+<link rel="icon" type="image/png" href="nap.png">
+<script src="index_script_logindata.js"></script>
+<script src="postingView_script.js"></script>
+<script src="nostr_tools.js"></script>
+<script src="index_script_relaycomm.js"></script>
+<script src="index_script_ledger.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f4f0; --surface: #ffffff; --border: #dddbd4;
+  --text: #1a1917; --text2: #6b6860; --text3: #a09e98;
+  --accent: #6d28d9; --accent-light: #ede9fe;
+  --debit: #b91c1c; --debit-bg: #fef2f2;
+  --credit: #15803d; --credit-bg: #f0fdf4;
+  --mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+  --max: 560px;
+}
+body { background:var(--bg); color:var(--text); font-family:var(--mono); font-size:14px; line-height:1.6; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:0 16px 48px; }
+.site-header { width:100%; max-width:var(--max); padding:28px 0 20px; border-bottom:1px solid var(--border); margin-bottom:28px; display:flex; align-items:center; gap:14px; }
+.site-logo { font-size:18px; font-weight:600; color:var(--text); text-decoration:none; letter-spacing:-0.5px; }
+.site-logo span { color:var(--accent); }
+.nap-img { display:block; max-width:70px; opacity:0.65; }
+.page { width:100%; max-width:var(--max); display:flex; flex-direction:column; gap:24px; }
+.back-link { font-size:12px; color:var(--text3); text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
+.back-link:hover { color:var(--accent); }
+.section-label { font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--text3); margin-bottom:10px; }
+.status-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.status-row { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border); font-size:12px; }
+.status-row:last-child { border-bottom:none; }
+.status-dot { width:7px; height:7px; border-radius:50%; background:var(--border); flex-shrink:0; }
+.status-dot.on { background:var(--accent); }
+.status-key { color:var(--text3); width:80px; flex-shrink:0; }
+.status-val { color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.status-val.active { color:var(--accent); }
+
+/* card */
+.card { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.card-header { padding:12px 16px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; justify-content:space-between; }
+.card-body { padding:16px; display:flex; flex-direction:column; gap:12px; }
+
+/* form */
+.form-group { display:flex; flex-direction:column; gap:5px; }
+.form-label { font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text2); }
+.form-input, .form-select { background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:7px 10px; font-family:var(--mono); font-size:12px; color:var(--text); outline:none; width:100%; transition:border-color 0.15s; }
+.form-input:focus, .form-select:focus { border-color:var(--accent); }
+.form-select option { background:var(--surface); }
+.date-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+/* button */
+.btn { font-family:var(--mono); font-size:12px; padding:7px 14px; border-radius:5px; cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; gap:6px; border:none; white-space:nowrap; }
+.btn-primary { background:var(--accent); color:#fff; font-weight:500; }
+.btn-primary:hover { background:#5b21b6; }
+.btn-ghost { background:transparent; border:1px solid var(--border); color:var(--text2); }
+.btn-ghost:hover { border-color:var(--accent); color:var(--accent); }
+
+/* empty */
+.empty-state { background:var(--surface); border:1px dashed var(--border); border-radius:8px; padding:36px 20px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.empty-icon { font-size:24px; opacity:0.3; }
+.empty-text { font-size:12px; color:var(--text3); }
+.empty-link { font-size:12px; color:var(--accent); text-decoration:none; }
+.empty-link:hover { text-decoration:underline; }
+
+/* table */
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+thead th { padding:8px 12px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text3); border-bottom:1px solid var(--border); font-weight:500; white-space:nowrap; }
+tbody tr { border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.1s; }
+tbody tr:last-child { border-bottom:none; }
+tbody tr:hover { background:var(--accent-light); }
+td { padding:9px 12px; color:var(--text2); vertical-align:middle; }
+td.date { color:var(--text3); white-space:nowrap; }
+td.desc { color:var(--text); max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+td.amount { text-align:right; font-weight:500; white-space:nowrap; }
+td.event-id { color:var(--text3); font-size:10px; }
+
+.acct-tag { display:inline-block; border-radius:3px; padding:1px 6px; font-size:10px; }
+.acct-tag.debit  { color:var(--accent); }
+.acct-tag.credit  { color:var(--accent); }
+/*.acct-tag.debit  { background:var(--debit-bg);  color:var(--debit); }
+.acct-tag.credit { background:var(--credit-bg); color:var(--credit); } */
+
+.table-footer { padding:10px 16px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text3); }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="site-logo" href="index.html">nap<span>_</span></a>
+  <!-- <img src="nap.png" alt="nap logo" class="nap-img"> -->
+</header>
+
+<main class="page">
+
+  <a class="back-link" href="posting.html">← back</a>
+
+  <div>
+    <div class="section-label">Current Session</div>
+    <div class="status-card">
+      <div class="status-row">
+        <span class="status-dot" id="accountantDot"></span>
+        <span class="status-key">accountant</span>
+        <span class="status-val" id="accountantVal">not logged in</span>
+      </div>
+      <div class="status-row">
+        <span class="status-dot" id="ledgerDot"></span>
+        <span class="status-key">ledger</span>
+        <span class="status-val" id="ledgerVal">not selected</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">Overview Postings · kind 7701</div>
+    <div id="mainContent">
+      <div class="empty-state">
+        <div class="empty-icon">≡</div>
+        <div class="empty-text">No ledger selected.</div>
+        <a class="empty-link" href="loginLedger.html">Select a ledger →</a>
+      </div>
+    </div>
+  </div>
+  <img src="nap.png" alt="nap logo" class="nap-img">
+</main>
+
+<script>
+let allEntries = [];
+
+function updateStatus2() {
+  console.log("updateStatus2 called.");
+  try {
+    let liLedgerEventString = localStorage.getItem("liLedgerEvent");
+    console.log("Loaded Ledger Event data: ");
+    console.log(liLedgerEventString);
+    if (liLedgerEventString) {
+      let liLedgerEvent = JSON.parse(liLedgerEventString);
+      console.log(liLedgerEvent);
+      renderFilters();
+      fetchEntries(liLedgerEvent);
+    } else {
+      console.log("No Ledger Event data found.");
+    } 
+  } catch(error) {}
+}
+
+function renderFilters() {
+  document.getElementById('mainContent').innerHTML = `
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">Filters</div>
+      <div class="card-body">
+        <div class="date-row">
+          <div class="form-group">
+            <label class="form-label">From posting date</label>
+            <input class="form-input" id="dateFrom" type="date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">To posting date</label>
+            <input class="form-input" id="dateTo" type="date">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Account</label>
+          <select class="form-select" id="filterAccount">
+            <option value="">all accounts</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="applyFilters()">Fetch</button>
+          <button class="btn btn-ghost"   onclick="clearFilters()">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div id="tableArea"></div>`;
+
+  // set default date range: first day of current month → today
+  const now = new Date();
+  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const today = now.toISOString().split('T')[0];
+  document.getElementById('dateFrom').value = firstOfMonth;
+  document.getElementById('dateTo').value   = today;
+}
+
+async function fetchEntries(event) {
+  console.log("fetchEntries called.");
+  let eventContentData = JSON.parse(event.content);
+  let ledgerMeta = eventContentData;
+  try {
+    allEntries = await getAllEntries(event);
+    console.log("All entries received: ");
+    console.log(allEntries);
+  } catch(error) { alert("Error loading ledger entries: " + error); }
+  /*let allEntries = [
+    { id:'e1a2b3c4d5e6', created_at: ts('2025-04-01'), content: JSON.stringify({ debit_account:'acc_a_0001', credit_account:'acc_a_0002',   acc_amount:[4250,  2,'sats'], acc_mvt_type:'acc_m_0001',  acc_partner:'acc_p_0001', description:'Example entry' }) }
+  ];*/
+
+  // populate account filter
+  const sel = document.getElementById('filterAccount');
+  if (sel) {
+    sel.innerHTML = '<option value="">all accounts</option>' +
+      (ledgerMeta.acc_accounts||[]).map(a => `<option value="${a.id}">${a.id} ${a.name}</option>`).join('');
+  }
+
+  renderTable(allEntries, event);
+}
+
+function applyFilters() {
+  const from    = document.getElementById('dateFrom')?.value;
+  const to      = document.getElementById('dateTo')?.value;
+  const account = document.getElementById('filterAccount')?.value;
+
+  const filtered = allEntries.filter(e => {
+    const m = JSON.parse(e.content);
+    const d = new Date(e.created_at * 1000).toISOString().split('T')[0];
+    if (from && d < from) return false;
+    if (to   && d > to)   return false;
+    if (account && m.debit_account !== account && m.credit_account !== account) return false;
+    return true;
+  });
+  
+  let liLedgerEventString = localStorage.getItem("liLedgerEvent");
+  let liLedgerEvent = JSON.parse(liLedgerEventString);
+  renderTable(filtered, liLedgerEvent);
+}
+
+function clearFilters() {
+  console.log("clearFilters called.");
+  let liLedgerEventString = localStorage.getItem("liLedgerEvent");
+  let liLedgerEvent = JSON.parse(liLedgerEventString);
+  const now = new Date();
+  document.getElementById('dateFrom').value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  document.getElementById('dateTo').value   = now.toISOString().split('T')[0];
+  document.getElementById('filterAccount').value = '';
+  renderTable(allEntries, liLedgerEvent);
+}
+
+function renderTable(entries, event) {
+  console.log("renderTable called.");
+  const area = document.getElementById('tableArea');
+  if (!area) return;
+
+  if (!entries.length) {
+    area.innerHTML = `<div class="empty-state"><div class="empty-icon">≡</div><div class="empty-text">No entries found for this filter.</div></div>`;
+    return;
+  }
+  
+  let eventContentData = JSON.parse(event.content);
+  ledgerMeta = eventContentData;
+  const accounts = Object.fromEntries((ledgerMeta.acc_accounts||[]).map(a=>[a.id,a.name]));
+
+  const rows = entries.map(e => {
+    const m = JSON.parse(e.content);
+    const [amt, scale, unit] = m.acc_amount || [0,0,'?'];
+    const display = (amt / Math.pow(10, scale||0)).toFixed(scale||0);
+    const date = new Date(e.created_at * 1000).toISOString().split('T')[0];
+    const debitName  = accounts[m.debit_account]  || m.debit_account  || '—';
+    const creditName = accounts[m.credit_account] || m.credit_account || '—';
+    return `<tr onclick="showDetail('${e.id}')">
+      <td class="date">${date}</td>
+      <td class="desc">${m.description || '—'}</td>
+      <td><span class="acct-tag debit">${debitName}</span></td>
+      <td><span class="acct-tag credit">${creditName}</span></td>
+      <td class="amount">${display} ${unit}</td>
+      <td class="event-id">${e.id.slice(0,10)}…</td>
+    </tr>`;
+  }).join('');
+
+  area.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        Entries
+        <span style="font-weight:400;color:var(--text3)">${entries.length}</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Debit</th>
+              <th>Credit</th>
+              <th style="text-align:right">Amount</th>
+              <th>Event ID</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function showDetail(id) {
+  //const e = allEntries.find(x => x.id === id);
+  //if (!e) return;
+  //const m = JSON.parse(e.content);
+  // TODO: open a detail view or modal
+  console.log('Posting detail:', id);
+}
+
+function ts(dateStr) { return Math.floor(new Date(dateStr).getTime()/1000); }
+
+updateStatus();
+updateStatus2();
+</script>
+</body>
+</html>

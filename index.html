@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>nap · Nostr Accounting Program</title>
 <link rel="icon" type="image/png" href="nap.png">
+<script src="index_script_logindata.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -181,10 +182,6 @@ hr { border: none; border-top: 1px solid var(--border); }
 
 <main class="page">
 
-  <div class="notice">
-    Test program only — do not use for real data. <br>Example data is for throw-away purposes.
-  </div>
-
   <div>
     <div class="section-label">Current Session</div>
     <div class="status-card">
@@ -224,7 +221,16 @@ hr { border: none; border-top: 1px solid var(--border); }
         Nostr Log In
         <span class="nav-desc">nsec / naddr</span>
       </a>
+       <a class="nav-link" href="discovery.html">
+        <span class="nav-icon">🔍</span>
+        Discovery
+        <span class="nav-desc"></span>
+      </a>
     </nav>
+  </div>
+  
+  <div class="notice">
+    Test program only — do not use for real data. <br>Use example data for throw-away purposes only.
   </div>
 
   <img src="nap.png" alt="nap logo" class="nap-img">
@@ -244,33 +250,7 @@ hr { border: none; border-top: 1px solid var(--border); }
 </main>
 
 <script>
-  try {
-    const loginDataString = localStorage.getItem("liKeypair");
-    const loginData = JSON.parse(loginDataString);
-    const ledger = sessionStorage.getItem('nostr_ledger');
-    const aVal = document.getElementById('accountantVal');
-    const aDot = document.getElementById('accountantDot');
-    if (loginData) {
-      aVal.textContent = loginData.npubShort;
-      aVal.classList.add('active');
-      aDot.classList.add('on');
-    } else {
-      aVal.textContent = 'not logged in';
-      aVal.classList.remove('active');
-      aDot.classList.remove('on');
-    }
-    const lVal = document.getElementById('ledgerVal');
-    const lDot = document.getElementById('ledgerDot');
-    if (ledger) {
-      lVal.textContent = ledger;
-      lVal.classList.add('active');
-      lDot.classList.add('on');
-    } else {
-      lVal.textContent = 'not selected';
-      lVal.classList.remove('active');
-      lDot.classList.remove('on');
-    }
-  } catch(e) {}
+  updateStatus();
 </script>
 </body>
 </html>

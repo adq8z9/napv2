@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>nap · Manual Posting</title>
+<link rel="icon" type="image/png" href="nap.png">
+<script src="index_script_logindata.js"></script>
+<script src="postingManual_script.js"></script>
+<script src="index_script_ledger.js"></script>
+<script src="index_script_relaycomm.js"></script>
+<script src="nostr_tools.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f4f0; --surface: #ffffff; --border: #dddbd4;
+  --text: #1a1917; --text2: #6b6860; --text3: #a09e98;
+  --accent: #6d28d9; --accent-light: #ede9fe;
+  --warn: #92400e; --warn-bg: #fef3c7;
+  --ok-bg: #f0fdf4; --ok-border: #86efac; --ok: #15803d;
+  --mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+  --max: 560px;
+}
+body { background:var(--bg); color:var(--text); font-family:var(--mono); font-size:14px; line-height:1.6; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:0 16px 48px; }
+.site-header { width:100%; max-width:var(--max); padding:28px 0 20px; border-bottom:1px solid var(--border); margin-bottom:28px; display:flex; align-items:center; gap:14px; }
+.site-logo { font-size:18px; font-weight:600; color:var(--text); text-decoration:none; letter-spacing:-0.5px; }
+.site-logo span { color:var(--accent); }
+.nap-img { display:block; max-width:70px; opacity:0.65; }
+.page { width:100%; max-width:var(--max); display:flex; flex-direction:column; gap:24px; }
+.back-link { font-size:12px; color:var(--text3); text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
+.back-link:hover { color:var(--accent); }
+.section-label { font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--text3); margin-bottom:10px; }
+.status-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.status-row { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border); font-size:12px; }
+.status-row:last-child { border-bottom:none; }
+.status-dot { width:7px; height:7px; border-radius:50%; background:var(--border); flex-shrink:0; }
+.status-dot.on { background:var(--accent); }
+.status-key { color:var(--text3); width:80px; flex-shrink:0; }
+.status-val { color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.status-val.active { color:var(--accent); }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.card-header { padding:12px 16px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; }
+.card-body { padding:16px; display:flex; flex-direction:column; gap:14px; }
+.form-group { display:flex; flex-direction:column; gap:5px; }
+.form-label { font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text2); }
+.form-hint { font-size:11px; color:var(--text3); line-height:1.5; }
+.form-input, .form-select, .form-textarea {
+  background:var(--bg); border:1px solid var(--border); border-radius:5px;
+  padding:8px 10px; font-family:var(--mono); font-size:13px; color:var(--text);
+  outline:none; width:100%; transition:border-color 0.15s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color:var(--accent); }
+.form-input::placeholder, .form-textarea::placeholder { color:var(--text3); }
+.form-select option { background:var(--surface); }
+.form-textarea { resize:vertical; min-height:64px; }
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.amount-row { display:grid; grid-template-columns:1fr 72px 100px; gap:8px; }
+hr { border:none; border-top:1px solid var(--border); }
+.btn-row { display:flex; gap:8px; flex-wrap:wrap; }
+.btn { font-family:var(--mono); font-size:12px; padding:8px 16px; border-radius:5px; cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; gap:6px; border:none; white-space:nowrap; }
+.btn-primary { background:var(--accent); color:#fff; font-weight:500; }
+.btn-primary:hover { background:#5b21b6; }
+.btn-ghost { background:transparent; border:1px solid var(--border); color:var(--text2); }
+.btn-ghost:hover { border-color:var(--accent); color:var(--accent); }
+.notice { background:var(--warn-bg); border:1px solid #fcd34d; border-radius:6px; padding:10px 14px; font-size:12px; color:var(--warn); line-height:1.6; }
+.notice-ok { background:var(--ok-bg); border:1px solid var(--ok-border); border-radius:6px; padding:10px 14px; font-size:12px; color:var(--ok); display:none; }
+.notice-ok.show { display:block; }
+.empty-state { background:var(--surface); border:1px dashed var(--border); border-radius:8px; padding:36px 20px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.empty-icon { font-size:24px; opacity:0.3; }
+.empty-text { font-size:12px; color:var(--text3); }
+.empty-link { font-size:12px; color:var(--accent); text-decoration:none; }
+.empty-link:hover { text-decoration:underline; }
+.sources { display:flex; flex-direction:column; gap:6px; }
+.sources a { font-size:11px; color:var(--text3); text-decoration:none; display:inline-flex; align-items:center; gap:5px; }
+.sources a::before { content:'↗'; font-size:10px; }
+.sources a:hover { color:var(--accent); }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="site-logo" href="index.html">nap<span>_</span></a>
+  <!-- <img src="nap.png" alt="nap logo" class="nap-img"> -->
+</header>
+
+<main class="page">
+
+  <a class="back-link" href="posting.html">← back</a>
+
+  <div>
+    <div class="section-label">Current Session</div>
+    <div class="status-card">
+      <div class="status-row">
+        <span class="status-dot" id="accountantDot"></span>
+        <span class="status-key">accountant</span>
+        <span class="status-val" id="accountantVal">not logged in</span>
+      </div>
+      <div class="status-row">
+        <span class="status-dot" id="ledgerDot"></span>
+        <span class="status-key">ledger</span>
+        <span class="status-val" id="ledgerVal">not selected</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">Manual Posting · kind 7701</div>
+    <div id="mainContent">
+      <div class="empty-state">
+        <div class="empty-icon">✎</div>
+        <div class="empty-text">No ledger selected.</div>
+        <a class="empty-link" href="loginLedger.html">Select a ledger →</a>
+      </div>
+    </div>
+  </div>
+  <img src="nap.png" alt="nap logo" class="nap-img">
+</main>
+
+<script>
+function updateStatus2() {
+  console.log("updateStatus2 called.");
+  try {
+    //localStorage.removeItem("updatedLedgerEventTemp");
+    let liLedgerEventString = localStorage.getItem("liLedgerEvent");
+    console.log("Loaded Ledger Event data: ");
+    console.log(liLedgerEventString);
+    if (liLedgerEventString) {
+      let liLedgerEvent = JSON.parse(liLedgerEventString);
+      console.log(liLedgerEvent);
+      renderForm(liLedgerEvent);
+    } else {
+      console.log("No Ledger Event data found.");
+    } 
+  } catch(error) {}
+}
+
+function opts(items, placeholder) {
+  return `<option value="">${placeholder}</option>` +
+    (items||[]).map(i => `<option value="${i.id}">${i.id} ${i.name}</option>`).join('');
+}
+
+function renderForm(event) {
+  console.log("renderForm called.");
+  let ledgerMeta = JSON.parse(event.content);
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('mainContent').innerHTML = `
+    <div id="postOk" class="notice-ok"></div>
+
+    <div class="card">
+      <div class="card-header">Accounts</div>
+      <div class="card-body">
+        <div class="two-col">
+          <div class="form-group">
+            <label class="form-label">Debit Account</label>
+            <select class="form-select" id="f-debit">${opts(ledgerMeta.acc_accounts,'— select —')}</select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Credit Account</label>
+            <select class="form-select" id="f-credit">${opts(ledgerMeta.acc_accounts,'— select —')}</select>
+          </div>
+        </div>
+        <div class="form-hint">
+          Expense → debit: expense account, credit: asset/liability account<br>
+          Income &nbsp;→ debit: asset/liability account, credit: income account
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Amount</div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Amount · Scale · Unit</label>
+          <div class="amount-row">
+            <input class="form-input" id="f-amount" type="number" min="0" step="1" placeholder="0">
+            <input class="form-input" id="f-scale"  type="number" min="0" step="1"   placeholder="0">
+            <select class="form-select" id="f-unit">${opts(ledgerMeta.acc_units.map(u=>({id:u,name:''})),'-unit-')}</select>
+          </div>
+          <span class="form-hint">Scale n: amount stored as integer × 10⁻ⁿ. E.g. 4250 with scale 2 = 42.50 EUR.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Details</div>
+      <div class="card-body">
+        <div class="two-col">
+          <div class="form-group">
+            <label class="form-label">Movement Type</label>
+            <select class="form-select" id="f-mvt">${opts(ledgerMeta.acc_mvt_types,'— select —')}</select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Partner</label>
+            <select class="form-select" id="f-partner">${opts(ledgerMeta.acc_partners,'— none —')}</select>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label class="form-label">Posting Date</label>
+            <input class="form-input" id="f-date" type="date" value="${today}">
+          </div>
+          <!-- <div class="form-group">
+            <label class="form-label">Published At</label>
+            <input class="form-input" id="f-published" type="date" value="${today}">
+          </div> -->
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea" id="f-desc" placeholder="Entry description…"></textarea>
+        </div>
+      </div>
+    </div>
+    
+     <div class="card">
+      <div class="card-header">Supporting Documents</div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Upload Backup File</label>
+          <button class="btn btn-ghost" onclick="uploadBackUpFile()">Upload Supporting Documents</button>
+          <label class="form-label" id="file-upload-feedback">No BackUp File uploaded.</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="submitPosting()">Sign &amp; Publish</button>
+          <button class="btn btn-ghost"   onclick="clearPostingForm()">Clear</button>
+        </div>
+      </div>
+    </div>`;
+    console.log("Form rendered.");
+}
+
+function clearPostingForm() {
+  console.log("clearPostingForm called.");
+  //localStorage.removeItem("updatedLedgerEventTemp");
+  updateStatus2();
+}
+
+updateStatus();
+updateStatus2();
+</script>
+</body>
+</html>

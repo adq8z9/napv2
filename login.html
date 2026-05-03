@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>nap · Log In</title>
 <link rel="icon" type="image/png" href="nap.png">
+<script src="index_script_logindata.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -68,12 +69,12 @@ body { background:var(--bg); color:var(--text); font-family:var(--mono); font-si
       <a class="nav-link" href="loginAccount.html">
         <span class="nav-icon">→</span>
         Account Log In
-        <span class="nav-desc">nsec / naddr</span>
+        <span class="nav-desc">nsec</span>
       </a>
       <a class="nav-link" href="loginLedger.html">
         <span class="nav-icon">⊟</span>
         Ledger Log In
-        <span class="nav-desc">kind 37701</span>
+        <span class="nav-desc">kind 37701 / naddr</span>
       </a>
       <a class="nav-link" href="loginNWC.html">
         <span class="nav-icon">⚡</span>
@@ -85,33 +86,7 @@ body { background:var(--bg); color:var(--text); font-family:var(--mono); font-si
   <img src="nap.png" alt="nap logo" class="nap-img">
 </main>
 <script>
-  try {
-    const loginDataString = localStorage.getItem("liKeypair");
-    const loginData = JSON.parse(loginDataString);
-    const ledger = sessionStorage.getItem('nostr_ledger');
-    const aVal = document.getElementById('accountantVal');
-    const aDot = document.getElementById('accountantDot');
-    if (loginData) {
-      aVal.textContent = loginData.npubShort;
-      aVal.classList.add('active');
-      aDot.classList.add('on');
-    } else {
-      aVal.textContent = 'not logged in';
-      aVal.classList.remove('active');
-      aDot.classList.remove('on');
-    }
-    const lVal = document.getElementById('ledgerVal');
-    const lDot = document.getElementById('ledgerDot');
-    if (ledger) {
-      lVal.textContent = ledger;
-      lVal.classList.add('active');
-      lDot.classList.add('on');
-    } else {
-      lVal.textContent = 'not selected';
-      lVal.classList.remove('active');
-      lDot.classList.remove('on');
-    }
-  } catch(e) {}
+  updateStatus();
 </script>
 </body>
 </html>
