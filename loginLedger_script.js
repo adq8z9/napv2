@@ -59,8 +59,8 @@ async function createExampleLedger() {
   let liKeypairString = localStorage.getItem("liKeypair");
   if(liKeypairString !== null) {
     try {
-      let creationRelay = "ws://umbrel.local:4848";
-      //let creationRelay = "wss://nos.lol";
+      //let creationRelay = "ws://umbrel.local:4848";
+      let creationRelay = "wss://nos.lol";
       let creationRelays = [ creationRelay ];
       console.log("Creation Relay: " + creationRelays);
       let liKeypair = JSON.parse(liKeypairString);
