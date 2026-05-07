@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>nap · Account Flowgraph</title>
+<link rel="icon" type="image/png" href="nap.png">
+<script src="index_script_logindata.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f4f0; --surface: #ffffff; --border: #dddbd4;
+  --text: #1a1917; --text2: #6b6860; --text3: #a09e98;
+  --accent: #6d28d9; --accent-light: #ede9fe;
+  --mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+  --max: 720px;
+}
+body { background:var(--bg); color:var(--text); font-family:var(--mono); font-size:14px; line-height:1.6; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:0 16px 48px; }
+.site-header { width:100%; max-width:var(--max); padding:28px 0 20px; border-bottom:1px solid var(--border); margin-bottom:28px; display:flex; align-items:center; gap:14px; }
+.site-logo { font-size:18px; font-weight:600; color:var(--text); text-decoration:none; letter-spacing:-0.5px; }
+.site-logo span { color:var(--accent); }
+.page { width:100%; max-width:var(--max); display:flex; flex-direction:column; gap:24px; }
+.back-link { font-size:12px; color:var(--text3); text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
+.back-link:hover { color:var(--accent); }
+.section-label { font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--text3); margin-bottom:10px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.card-header { padding:12px 16px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center; }
+.card-body { padding:0; }
+
+/* graph container */
+#graph { width:100%; height:420px; background:var(--bg); }
+
+/* toolbar */
+.toolbar { display:flex; gap:8px; padding:12px 16px; border-bottom:1px solid var(--border); flex-wrap:wrap; align-items:center; }
+.btn { font-family:var(--mono); font-size:11px; padding:4px 10px; border:1px solid var(--border); border-radius:4px; background:var(--surface); color:var(--text2); cursor:pointer; letter-spacing:0.3px; }
+.btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+/*.toolbar-hint { font-size:11px; color:var(--text3); margin-left:auto; }*/
+.toolbar-hint { font-size:11px; color:var(--text3); }
+
+/* entry form */
+.entry-form { padding:12px 16px; border-bottom:1px solid var(--border); background:var(--bg); display:none; }
+.form-row { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:8px; align-items:end; }
+.form-field label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--text3); margin-bottom:4px; }
+.form-field input { font-family:var(--mono); font-size:12px; width:100%; padding:5px 8px; border:1px solid var(--border); border-radius:4px; background:var(--surface); color:var(--text); outline:none; }
+.form-field input:focus { border-color:var(--accent); }
+.btn-add { font-family:var(--mono); font-size:11px; padding:5px 12px; border:1px solid var(--accent); border-radius:4px; background:var(--accent-light); color:var(--accent); cursor:pointer; white-space:nowrap; align-self:end; }
+.btn-add:hover { background:var(--accent); color:#fff; }
+
+/* entry list */
+.list-section { border-top:1px solid var(--border); }
+.list-header { padding:8px 16px; font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--text3); background:var(--bg); display:flex; justify-content:space-between; align-items:center; }
+.list-count { font-size:10px; color:var(--text3); }
+.list-item { display:flex; align-items:baseline; gap:8px; padding:7px 16px; border-bottom:1px solid var(--border); font-size:12px; }
+.list-item:last-child { border-bottom:none; }
+.list-debit { color:var(--accent); }
+.list-credit { color:var(--text2); }
+.list-amount { color:var(--text3); font-size:11px; margin-left:auto; }
+.list-arrow { color:var(--text3); font-size:11px; }
+.list-remove { color:var(--text3); font-size:11px; cursor:pointer; text-decoration:none; margin-left:8px; }
+.list-remove:hover { color:var(--accent); }
+.list-empty { padding:10px 16px; font-size:12px; color:var(--text3); font-style:italic; }
+.tag { display:inline-block; background:var(--accent-light); color:var(--accent); border-radius:3px; padding:1px 7px; font-size:11px; margin:1px; }
+.status-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.status-row { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border); font-size:12px; }
+.status-row:last-child { border-bottom:none; }
+.status-dot { width:7px; height:7px; border-radius:50%; background:var(--border); flex-shrink:0; }
+.status-dot.on { background:var(--accent); }
+.status-key { color:var(--text3); width:80px; flex-shrink:0; }
+.status-val { color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.status-val.active { color:var(--accent); }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css">
+</head>
+<body>
+
+<header class="site-header">
+  <a class="site-logo" href="index.html">nap<span>_</span></a>
+</header>
+
+<main class="page">
+
+  <a class="back-link" href="report.html">← back</a>
+  
+  <div>
+    <div class="section-label">Current Session</div>
+    <div class="status-card">
+      <div class="status-row">
+        <span class="status-dot" id="accountantDot"></span>
+        <span class="status-key">accountant</span>
+        <span class="status-val" id="accountantVal">not logged in</span>
+      </div>
+      <div class="status-row">
+        <span class="status-dot" id="ledgerDot"></span>
+        <span class="status-key">ledger</span>
+        <span class="status-val" id="ledgerVal">not selected</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">View Flowgraph</div>
+    <div class="card">
+      <div class="card-header">
+        <span>Flowgraph</span>
+        <!-- <span class="tag">7701</span> -->
+      </div>
+      <div class="card-body">
+
+        <div class="toolbar">
+          <!-- <button class="btn" onclick="toggleForm()">+ add entry</button>
+          <button class="btn" onclick="resetEntries()">reset</button> -->
+          <span class="toolbar-hint">drag nodes · scroll to zoom</span>
+        </div>
+
+        <!-- <div class="entry-form" id="entryForm">
+          <div class="form-row">
+            <div class="form-field">
+              <label>debit account</label>
+              <input id="inp-debit" type="text" placeholder="e.g. Expense">
+            </div>
+            <div class="form-field">
+              <label>credit account</label>
+              <input id="inp-credit" type="text" placeholder="e.g. Wallet">
+            </div>
+            <div class="form-field">
+              <label>amount</label>
+              <input id="inp-amount" type="number" placeholder="100">
+            </div>
+            <button class="btn-add" onclick="submitEntry()">add →</button>
+          </div>
+        </div> -->
+
+        <div id="graph"></div>
+        
+         <div class="toolbar">
+          <!-- <button class="btn" onclick="toggleForm()">+ add entry</button>
+          <button class="btn" onclick="resetEntries()">reset</button> -->
+          <!-- <span class="toolbar-hint">drag nodes · scroll to zoom</span> -->
+        </div>
+
+      <!-- <div class="list-section">
+          <div class="list-header">
+            Entries
+            <span class="list-count" id="entryCount">0</span>
+          </div>
+          <div id="entryList"></div>
+        </div> -->
+
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+<script>
+const ACCENT       = '#6d28d9';
+const ACCENT_LIGHT = '#ede9fe';
+const BORDER       = '#dddbd4';
+const TEXT2        = '#6b6860';
+const TEXT3        = '#a09e98';
+const BG           = '#f5f4f0';
+const MONO         = "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace";
+
+let entries = [];
+
+let network;
+
+function buildGraph() {
+  console.log("buildGraph called.");
+  const flowMap = {};
+  let entryEventsString = localStorage.getItem("liEntryEvents");
+  let entries = JSON.parse(entryEventsString);
+  console.log(entries);
+  entries.forEach(e => {
+    let ep = JSON.parse(e.content);
+    console.log(ep);
+    const key = ep.credit_account + '|||' + ep.debit_account;
+    flowMap[key] = (flowMap[key] || 0) + (ep.acc_amount[0]);
+  });
+
+  const accountSet = new Set();
+  entries.forEach(e => { let ep = JSON.parse(e.content); accountSet.add(ep.debit_account); accountSet.add(ep.credit_account); });
+
+  const nodeArr = [...accountSet].map(name => ({
+    id: name,
+    label: name,
+    shape: 'box',
+    color: { background: ACCENT_LIGHT, border: ACCENT, highlight: { background: ACCENT_LIGHT, border: ACCENT } },
+    font: { color: ACCENT, size: 13, face: MONO },
+    margin: { top: 7, bottom: 7, left: 12, right: 12 },
+    borderWidth: 1,
+  }));
+
+  const maxFlow = Math.max(...Object.values(flowMap));
+  const edgeArr = Object.entries(flowMap).map(([key, total]) => {
+    const [from, to] = key.split('|||');
+    console.log(key);
+    console.log(from);
+    console.log(to);
+    console.log(total);
+    return {
+      from, to,
+      arrows: { to: { enabled: true, scaleFactor: 0.7 } },
+      label: total.toLocaleString(),
+      color: { color: BORDER, highlight: ACCENT },
+      font: { color: TEXT3, size: 11, face: MONO, align: 'middle', strokeWidth: 0 },
+      width: 1 + Math.round((total / maxFlow) * 3),
+      smooth: { type: 'curvedCW', roundness: 0.15 },
+    };
+  });
+
+  const nodes = new vis.DataSet(nodeArr);
+  const edges = new vis.DataSet(edgeArr);
+
+  const options = {
+    layout: { hierarchical: { direction: 'LR', sortMethod: 'directed', levelSeparation: 170, nodeSpacing: 80 } },
+    physics: false,
+    interaction: { hover: true, tooltipDelay: 200 },
+    nodes: { borderWidthSelected: 2 },
+  };
+
+  if (network) network.destroy();
+  network = new vis.Network(document.getElementById('graph'), { nodes, edges }, options);
+}
+
+function renderList() {
+  console.log("renderList called.");
+  /*const list = document.getElementById('entryList');
+  document.getElementById('entryCount').textContent = entries.length;
+  if (!entries.length) {
+    list.innerHTML = '<div class="list-empty">no entries</div>';
+    return;
+  }
+  list.innerHTML = entries.map((e, i) =>
+    `<div class="list-item">
+      <span class="list-credit">${e.credit}</span>
+      <span class="list-arrow">→</span>
+      <span class="list-debit">${e.debit}</span>
+      <span class="list-amount">${e.amount.toLocaleString()}</span>
+      <a class="list-remove" href="#" onclick="removeEntry(${i}); return false;">✕</a>
+    </div>`
+  ).join('');*/
+}
+
+function toggleForm() {
+  console.log("toggleForm called.");
+  /*const f = document.getElementById('entryForm');
+  f.style.display = f.style.display === 'none' || f.style.display === '' ? 'block' : 'none';*/
+}
+
+function submitEntry() {
+  console.log("submitEntry called.");
+  /*const debit  = document.getElementById('inp-debit').value.trim();
+  const credit = document.getElementById('inp-credit').value.trim();
+  const amount = parseFloat(document.getElementById('inp-amount').value);
+  if (!debit || !credit || isNaN(amount) || amount <= 0) return;
+  entries.push({ debit, credit, amount });
+  document.getElementById('inp-debit').value = '';
+  document.getElementById('inp-credit').value = '';
+  document.getElementById('inp-amount').value = '';
+  document.getElementById('entryForm').style.display = 'none';
+  buildGraph();
+  renderList();*/
+}
+
+function removeEntry(i) {
+  console.log("removeEntry called.");
+  /*entries.splice(i, 1);
+  buildGraph();
+  renderList();*/
+}
+
+function resetEntries() {
+  console.log("resetEntries called.");
+  /*entries = [
+    { debit: 'Expense', credit: 'Wallet', amount: 50 },
+    { debit: 'Expense', credit: 'Wallet', amount: 30 },
+    { debit: 'Savings', credit: 'Wallet', amount: 100 },
+    { debit: 'Tax',     credit: 'Wallet', amount: 20 },
+    { debit: 'Wallet',  credit: 'Income', amount: 300 },
+  ];
+  buildGraph();
+  renderList();*/
+}
+
+updateStatus();
+buildGraph();
+renderList();
+</script>
+</body>
+</html>
