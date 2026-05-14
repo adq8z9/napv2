@@ -3,16 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>nap · To Be Implemented</title>
-<link rel="icon" type="image/png" href="nap.png">
+<title>nap · Create Report</title>
+<script src="index_script_logindata.js"></script>
+<script src="reportCreate_script.js"></script>
+<script src="nostr_tools.js"></script>
+<script src="index_script_ledger.js"></script>
+<script src="index_script_relaycomm.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --bg: #f5f4f0; --surface: #ffffff; --border: #dddbd4;
   --text: #1a1917; --text2: #6b6860; --text3: #a09e98;
   --accent: #6d28d9; --accent-light: #ede9fe;
+  --debit: #b91c1c; --debit-bg: #fef2f2;
+  --credit: #15803d; --credit-bg: #f0fdf4;
+  --warn: #92400e; --warn-bg: #fef3c7;
+  --ok-bg: #f0fdf4; --ok-border: #86efac; --ok: #15803d;
   --mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
-  --max: 560px;
+  --max: 640px;
 }
 body { background:var(--bg); color:var(--text); font-family:var(--mono); font-size:14px; line-height:1.6; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:0 16px 48px; }
 .site-header { width:100%; max-width:var(--max); padding:28px 0 20px; border-bottom:1px solid var(--border); margin-bottom:28px; display:flex; align-items:center; gap:14px; }
@@ -22,38 +30,97 @@ body { background:var(--bg); color:var(--text); font-family:var(--mono); font-si
 .page { width:100%; max-width:var(--max); display:flex; flex-direction:column; gap:24px; }
 .back-link { font-size:12px; color:var(--text3); text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
 .back-link:hover { color:var(--accent); }
-.tbi-box {
-  background: var(--surface);
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  padding: 48px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  text-align: center;
+.section-label { font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--text3); margin-bottom:10px; }
+
+/* status */
+.status-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.status-row { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border); font-size:12px; }
+.status-row:last-child { border-bottom:none; }
+.status-dot { width:7px; height:7px; border-radius:50%; background:var(--border); flex-shrink:0; }
+.status-dot.on { background:var(--accent); }
+.status-key { color:var(--text3); width:80px; flex-shrink:0; }
+.status-val { color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.status-val.active { color:var(--accent); }
+
+/* card */
+.card { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.card-header { padding:12px 16px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.card-body { padding:16px; display:flex; flex-direction:column; gap:12px; }
+
+/* form */
+.form-group { display:flex; flex-direction:column; gap:5px; }
+.form-label { font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text2); }
+.form-input, .form-select, .form-textarea {
+  background:var(--bg); border:1px solid var(--border); border-radius:5px;
+  padding:8px 10px; font-family:var(--mono); font-size:13px; color:var(--text);
+  outline:none; width:100%; transition:border-color 0.15s;
 }
-.tbi-icon { font-size: 28px; opacity: 0.4; }
-.tbi-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 1.4px;
-  color: var(--text3);
-}
-.tbi-title {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--text2);
-  letter-spacing: -0.3px;
-}
-.tbi-page {
-  font-size: 11px;
-  color: var(--text3);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 3px 10px;
-}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color:var(--accent); }
+.form-input::placeholder, .form-textarea::placeholder { color:var(--text3); }
+.form-select option { background:var(--surface); }
+.form-textarea { resize:vertical; min-height:56px; }
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+/* buttons */
+.btn { font-family:var(--mono); font-size:12px; padding:7px 14px; border-radius:5px; cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; gap:6px; border:none; white-space:nowrap; }
+.btn-primary { background:var(--accent); color:#fff; font-weight:500; }
+.btn-primary:hover { background:#5b21b6; }
+.btn-ghost { background:transparent; border:1px solid var(--border); color:var(--text2); }
+.btn-ghost:hover { border-color:var(--accent); color:var(--accent); }
+.btn-row { display:flex; gap:8px; flex-wrap:wrap; }
+
+/* notices */
+.notice { background:var(--warn-bg); border:1px solid #fcd34d; border-radius:6px; padding:10px 14px; font-size:12px; color:var(--warn); line-height:1.6; }
+.notice-ok { background:var(--ok-bg); border:1px solid var(--ok-border); border-radius:6px; padding:10px 14px; font-size:12px; color:var(--ok); display:none; }
+.notice-ok.show { display:block; }
+
+/* empty */
+.empty-state { background:var(--surface); border:1px dashed var(--border); border-radius:8px; padding:36px 20px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.empty-icon { font-size:24px; opacity:0.3; }
+.empty-text { font-size:12px; color:var(--text3); }
+.empty-link { font-size:12px; color:var(--accent); text-decoration:none; }
+.empty-link:hover { text-decoration:underline; }
+
+hr { border:none; border-top:1px solid var(--border); }
+
+/* ── T-ACCOUNT ── */
+.t-accounts { display:flex; flex-direction:column; gap:20px; }
+
+.t-account { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.t-account-name { padding:10px 14px; font-size:12px; font-weight:500; color:var(--text); border-bottom:2px solid var(--border); background:var(--bg); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.t-account-id { font-size:10px; color:var(--text3); font-weight:400; }
+
+.t-cols { display:grid; grid-template-columns:1fr 1px 1fr; }
+.t-divider { background:var(--border); }
+
+.t-side { padding:0; }
+.t-side-header { padding:6px 12px; font-size:10px; text-transform:uppercase; letter-spacing:0.8px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; }
+.t-side-header.debit  { color:var(--debit);  background:var(--debit-bg); }
+.t-side-header.credit { color:var(--credit); background:var(--credit-bg); }
+
+.t-entry { display:flex; justify-content:space-between; align-items:baseline; padding:5px 12px; border-bottom:1px solid var(--border); font-size:11px; gap:8px; }
+.t-entry:last-child { border-bottom:none; }
+.t-entry-desc { color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+.t-entry-date { color:var(--text3); flex-shrink:0; }
+.t-entry-amt { font-weight:500; flex-shrink:0; text-align:right; }
+.t-entry-amt.debit  { color:var(--debit); }
+.t-entry-amt.credit { color:var(--credit); }
+.t-empty { padding:8px 12px; font-size:11px; color:var(--text3); font-style:italic; }
+
+.t-balance { display:flex; justify-content:space-between; padding:7px 12px; font-size:12px; font-weight:500; border-top:2px solid var(--border); background:var(--bg); }
+.t-balance-label { color:var(--text3); }
+.t-balance-val { }
+.t-balance-val.positive { color:var(--credit); }
+.t-balance-val.negative { color:var(--debit); }
+.t-balance-val.zero     { color:var(--text3); }
+
+/* summary row */
+.summary-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:12px; }
+.summary-row:last-child { border-bottom:none; }
+.summary-label { color:var(--text2); }
+.summary-val { font-weight:500; }
+.summary-val.positive { color:var(--credit); }
+.summary-val.negative { color:var(--debit); }
 </style>
 </head>
 <body>
@@ -65,31 +132,294 @@ body { background:var(--bg); color:var(--text); font-family:var(--mono); font-si
 
 <main class="page">
 
-  <a class="back-link" id="backLink" href="report.html">← back</a>
+  <a class="back-link" href="report.html">← back</a>
 
-  <div class="tbi-box">
-    <div class="tbi-icon">⧖</div>
-    <div class="tbi-label">not yet implemented</div>
-    <div class="tbi-title" id="pageTitle">to be implemented</div>
-    <div class="tbi-page" id="pageName"></div>
+  <div>
+    <div class="section-label">Current Session</div>
+    <div class="status-card">
+      <div class="status-row">
+        <span class="status-dot" id="accountantDot"></span>
+        <span class="status-key">accountant</span>
+        <span class="status-val" id="accountantVal">not logged in</span>
+      </div>
+      <div class="status-row">
+        <span class="status-dot" id="ledgerDot"></span>
+        <span class="status-key">ledger</span>
+        <span class="status-val" id="ledgerVal">not selected</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">Trial Balance Report · kind 7702</div>
+    <div id="mainContent">
+      <div class="empty-state">
+        <div class="empty-icon">↗</div>
+        <div class="empty-text">No ledger selected.</div>
+        <a class="empty-link" href="loginLedger.html">Select a ledger →</a>
+      </div>
+    </div>
   </div>
   <img src="nap.png" alt="nap logo" class="nap-img">
 
 </main>
 
 <script>
-  // Usage: link to this page as placeholder.html?title=Ledger+Postings&back=posting.html
-  // or just use it as-is and it will show the current filename
-  const params = new URLSearchParams(window.location.search);
-  const title = params.get('title');
-  const back = params.get('back');
+let allEntries = [];
+let ledgerMeta = {};
+let filteredEntries = [];
 
-  if (title) document.getElementById('pageTitle').textContent = title;
-  if (back) document.getElementById('backLink').href = back;
+function loadData(ledgerEv, entriesEv) {
+  console.log("loadData called.");
+  
+  let ledgerEvContent = JSON.parse(ledgerEv.content);
+  console.log(ledgerEvContent);
+  
+  /*ledgerMeta = {
+    name: 'Household 2025',
+    acc_units: ['EUR'],
+    acc_accounts: [
+      { id:'cash',      name:'Cash' },
+      { id:'bank',      name:'Bank Account' },
+      { id:'groceries', name:'Groceries' },
+      { id:'rent',      name:'Rent' },
+      { id:'income',    name:'Income' },
+      { id:'fees',      name:'Bank Fees' },
+    ],
+  };*/
+  ledgerMeta = ledgerEvContent;
 
-  const name = window.location.pathname.split('/').pop() || 'this page';
-  document.getElementById('pageName').textContent = name;
-  if (title) document.title = 'nap · ' + title;
+  // demo entries
+  /*allEntries = [
+    { id:'e1', created_at:ts('2025-04-01'), content: JSON.stringify({ debit_account:'groceries', credit_account:'bank',   acc_amount:[4250,  2,'EUR'], description:'Weekly groceries' }) },
+    { id:'e2', created_at:ts('2025-04-01'), content: JSON.stringify({ debit_account:'bank',      credit_account:'income', acc_amount:[280000,2,'EUR'], description:'Monthly salary' }) },
+    { id:'e3', created_at:ts('2025-04-05'), content: JSON.stringify({ debit_account:'rent',      credit_account:'bank',   acc_amount:[90000, 2,'EUR'], description:'April rent' }) },
+    { id:'e4', created_at:ts('2025-04-10'), content: JSON.stringify({ debit_account:'cash',      credit_account:'bank',   acc_amount:[10000, 2,'EUR'], description:'ATM withdrawal' }) },
+    { id:'e5', created_at:ts('2025-04-12'), content: JSON.stringify({ debit_account:'groceries', credit_account:'cash',   acc_amount:[2300,  2,'EUR'], description:'Market' }) },
+    { id:'e6', created_at:ts('2025-04-15'), content: JSON.stringify({ debit_account:'fees',      credit_account:'bank',   acc_amount:[500,   2,'EUR'], description:'Bank fee' }) },
+    { id:'e7', created_at:ts('2025-03-01'), content: JSON.stringify({ debit_account:'bank',      credit_account:'income', acc_amount:[280000,2,'EUR'], description:'March salary' }) },
+    { id:'e8', created_at:ts('2025-03-05'), content: JSON.stringify({ debit_account:'rent',      credit_account:'bank',   acc_amount:[90000, 2,'EUR'], description:'March rent' }) },
+  ];*/
+  allEntries = entriesEv;
+
+  renderFilterCard();
+  applyFilters();
+}
+
+function renderFilterCard() {
+  console.log("renderFilterCard called.");
+  const now        = new Date();
+  const firstMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const today      = now.toISOString().split('T')[0];
+
+  const accountOpts = '<option value="">all accounts</option>' +
+    (ledgerMeta.acc_accounts||[]).map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+
+  const unitOpts = (ledgerMeta.acc_units||['units']).map(u =>
+    `<option value="${u}">${u}</option>`).join('');
+
+  document.getElementById('mainContent').innerHTML = `
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">Filter Period</div>
+      <div class="card-body">
+        <div class="two-col">
+          <div class="form-group">
+            <label class="form-label">From posting date</label>
+            <input class="form-input" id="dateFrom" type="date" value="${firstMonth}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">To posting date</label>
+            <input class="form-input" id="dateTo" type="date" value="${today}">
+          </div>
+        </div>
+        <!-- <div class="two-col">
+          <div class="form-group">
+            <label class="form-label">Account</label>
+            <select class="form-select" id="filterAccount">${accountOpts}</select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unit</label>
+            <select class="form-select" id="filterUnit">${unitOpts}</select>
+          </div>
+        </div> -->
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="applyFilters()">Generate</button>
+          <button class="btn btn-ghost"   onclick="clearFilters()">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div id="tAccountArea"></div>`;
+}
+
+function applyFilters() {
+  console.log("applyFilters called.");
+  const from    = document.getElementById('dateFrom')?.value    || '';
+  const to      = document.getElementById('dateTo')?.value      || '';
+  //const account = document.getElementById('filterAccount')?.value || '';
+  //const unit    = document.getElementById('filterUnit')?.value   || '';
+
+  filteredEntries = allEntries.filter(e => {
+    const m = JSON.parse(e.content);
+    const d = new Date(e.created_at * 1000).toISOString().split('T')[0];
+    if (from && d < from) return false;
+    if (to   && d > to)   return false;
+    //if (account && m.debit_account !== account && m.credit_account !== account) return false;
+    //if (unit && m.acc_amount?.[2] !== unit) return false;
+    return true;
+  });
+
+  renderTAccounts(filteredEntries);
+}
+
+function clearFilters() {
+  console.log("clearFilters called.");
+  const now = new Date();
+  document.getElementById('dateFrom').value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  document.getElementById('dateTo').value   = now.toISOString().split('T')[0];
+  //document.getElementById('filterAccount').value = '';
+  applyFilters();
+}
+
+function renderTAccounts(entries) {
+  console.log("renderTAccounts called.");
+  console.log("Entries: " + entries);
+  const area = document.getElementById('tAccountArea');
+  if (!area) return;
+
+  if (!entries.length) {
+    area.innerHTML = `<div class="empty-state"><div class="empty-icon">⊟</div><div class="empty-text">No entries for this filter.</div></div>`;
+    return;
+  }
+
+  const accounts = Object.fromEntries((ledgerMeta.acc_accounts||[]).map(a=>[a.id,a.name]));
+  console.log("accounts: " + accounts);
+
+  // gather all account ids that appear in filtered entries
+  const accountIds = [...new Set(entries.flatMap(e => {
+    const m = JSON.parse(e.content);
+    return [m.debit_account, m.credit_account].filter(Boolean);
+  }))];
+
+  // filter to just selected account if set
+  const filterAcc = document.getElementById('filterAccount')?.value || '';
+  const displayIds = filterAcc ? [filterAcc] : accountIds;
+
+  // build T-account data per account
+  const tData = {};
+  displayIds.forEach(id => {
+    tData[id] = { debits:[], credits:[] };
+  });
+
+  entries.forEach(e => {
+    const m = JSON.parse(e.content);
+    const [amt, scale, unit] = m.acc_amount || [0,0,'?'];
+    const display = fmt(amt, scale);
+    const date = new Date(e.created_at * 1000).toISOString().split('T')[0];
+    const desc = m.description || '—';
+    if (tData[m.debit_account])  tData[m.debit_account].debits.push( { date, desc, display, raw: amt/Math.pow(10,scale||0) });
+    if (tData[m.credit_account]) tData[m.credit_account].credits.push({ date, desc, display, raw: amt/Math.pow(10,scale||0) });
+  });
+
+  const unit = document.getElementById('filterUnit')?.value || (ledgerMeta.acc_units||['sats'])[0];
+
+  // render each T-account
+  const tHtml = displayIds.map(id => {
+    const d = tData[id];
+    const name = accounts[id] || id;
+    const totalDebit  = d.debits.reduce( (s,x) => s + x.raw, 0);
+    const totalCredit = d.credits.reduce((s,x) => s + x.raw, 0);
+    const balance     = totalDebit - totalCredit;
+    const balClass    = balance > 0 ? 'positive' : balance < 0 ? 'negative' : 'zero';
+    const balLabel    = balance > 0 ? 'Dr balance' : balance < 0 ? 'Cr balance' : 'balanced';
+
+    const debitRows = d.debits.length
+      ? d.debits.map(x => `<div class="t-entry"><span class="t-entry-date">${x.date}</span><span class="t-entry-desc">${x.desc}</span><span class="t-entry-amt debit">${x.display}</span></div>`).join('')
+      : '<div class="t-empty">—</div>';
+
+    const creditRows = d.credits.length
+      ? d.credits.map(x => `<div class="t-entry"><span class="t-entry-date">${x.date}</span><span class="t-entry-desc">${x.desc}</span><span class="t-entry-amt credit">${x.display}</span></div>`).join('')
+      : '<div class="t-empty">—</div>';
+
+    return `
+      <div class="t-account">
+        <div class="t-account-name">
+          ${name}
+          <span class="t-account-id">${id}</span>
+        </div>
+        <div class="t-cols">
+          <div class="t-side">
+            <div class="t-side-header debit"><span>Debit</span><span>${fmtNum(totalDebit)} ${unit}</span></div>
+            ${debitRows}
+          </div>
+          <div class="t-divider"></div>
+          <div class="t-side">
+            <div class="t-side-header credit"><span>Credit</span><span>${fmtNum(totalCredit)} ${unit}</span></div>
+            ${creditRows}
+          </div>
+        </div>
+        <div class="t-balance">
+          <span class="t-balance-label">${balLabel}</span>
+          <span class="t-balance-val ${balClass}">${fmtNum(Math.abs(balance))} ${unit}</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  // summary
+  const totalDebits  = entries.reduce((s,e) => { const m=JSON.parse(e.content); const [a,sc]=m.acc_amount||[0,0]; return s + a/Math.pow(10,sc||0); }, 0);
+  const from = document.getElementById('dateFrom')?.value || '';
+  const to   = document.getElementById('dateTo')?.value   || '';
+
+  area.innerHTML = `
+    <div id="publishOk" class="notice-ok" style="margin-bottom:16px"></div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        Trial Balance
+        <span style="font-weight:400;color:var(--text3);font-size:11px">${from} → ${to}</span>
+      </div>
+      <div class="card-body" style="padding:0 16px">
+        <div class="summary-row"><span class="summary-label">Entries</span><span class="summary-val">${entries.length}</span></div>
+        <div class="summary-row"><span class="summary-label">Accounts</span><span class="summary-val">${displayIds.length}</span></div>
+        <div class="summary-row"><span class="summary-label">Total debit/credit</span><span class="summary-val">${fmtNum(totalDebits)} ${unit}</span></div>
+      </div>
+    </div>
+
+    <div class="t-accounts">${tHtml}</div>
+
+    <div class="card" style="margin-top:20px">
+      <div class="card-header">Publish as kind 7702 Report</div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Report Name</label>
+          <input class="form-input" id="repName" type="text"
+            placeholder="e.g. Trial Balance Report ${from} – ${to}"
+            value="Trial Balance Report ${from} – ${to}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea" id="repDesc"
+            placeholder="Optional description…">Trial balance view for period ${from} to ${to}. ${entries.length} entries, ${displayIds.length} accounts, ${fmtNum(totalDebits)} ${unit} debit/credit volume.</textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="publishReport()">Sign &amp; Publish Report</button>
+        </div>
+        <!-- <div class="notice" style="margin-top:4px">
+          This publishes a kind 7702 event referencing the current ledger. It does not include the raw data — attach data backup refs manually or wire the file upload.
+        </div> -->
+      </div>
+    </div>`;
+}
+
+function fmt(amt, scale) {
+  return (amt / Math.pow(10, scale||0)).toFixed(scale||0);
+}
+function fmtNum(n) {
+  return n.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+function ts(d) { return Math.floor(new Date(d).getTime()/1000); }
+
+updateStatus();
+updateStatus2();
 </script>
 </body>
 </html>

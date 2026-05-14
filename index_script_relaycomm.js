@@ -58,6 +58,140 @@ async function sendLedgerEvent(ledgerEvent, secK, relays) {
   }
 }
 
+async function sendLedgerEntryEvent(leEvent, secK, relays) {
+  const pool = new NostrTools.SimplePool();
+  console.log("Send Ledger Entry event.");
+  function authF(eventA) {
+    console.log("Relay authentication.");
+    return NostrTools.finalizeEvent(eventA, secK);
+  }
+  await Promise.any(pool.publish(relays, leEvent, { onauth : authF }));
+  const event = await pool.get(
+    relays,
+    {
+      ids: [ leEvent.id ],
+    },
+  );
+  console.log('Event from Relay: ', event);
+  if(event == null) { 
+    throw "Error when saving on relay!"; 
+  } else {
+    return event;
+  }
+}
+
+async function getLedgerEntryEvent(ledgerEvent, secK) {
+  const pool = new NostrTools.SimplePool();
+  console.log("Get Ledger Entry events.");
+  function authF(eventA) {
+    console.log("Relay authentication.");
+    return NostrTools.finalizeEvent(eventA, secK);
+  }
+  let relays = getAccountingLedgerRelays(ledgerEvent);
+  console.log("Relays: " + relays);
+  const ledgerCoordinate = "37701:" + ledgerEvent.pubkey + ":" + getAccountingLedgerIdentifier(ledgerEvent);
+  console.log("A-filter: " + ledgerCoordinate);
+  let entries = [];
+  try {
+    // kind 7701 events reference their ledger via an "A" tag
+    console.log("Query sync.");
+    entries = await pool.querySync(relays, {
+      kinds: [7701],
+      "#A": [ledgerCoordinate],
+    });
+    console.log("Received from relay: ");
+    console.log(entries);
+    return entries;
+  } finally {
+    pool.close(relays);
+  }
+  //await delay(2);
+  /*await Promise.any(pool.publish(relays, leEvent, { onauth : authF }));
+  const event = await pool.get(
+    relays,
+    {
+      ids: [ leEvent.id ],
+    },
+  );
+  console.log('Event from Relay: ', event);
+  if(event == null) { 
+    throw "Error when saving on relay!"; 
+  } else {
+    return event;
+  }*/
+}
+
+function delay(n) {
+  console.log("delay called.");
+  return new Promise(function(resolve) {
+    setTimeout(resolve, n * 1000);
+  });
+}
+
+async function sendReportEvent(reportEvent, secK, relays) {
+  const pool = new NostrTools.SimplePool();
+  console.log("Send report event.");
+  function authF(eventA) {
+    console.log("Relay authentication.");
+    return NostrTools.finalizeEvent(eventA, secK);
+  }
+  await Promise.any(pool.publish(relays, reportEvent, { onauth : authF }));
+  const event = await pool.get(
+    relays,
+    {
+      ids: [ reportEvent.id ],
+    },
+  );
+  console.log('Event from Relay: ', event);
+  if(event == null) { 
+    throw "Error when saving on relay!"; 
+  } else {
+    return event;
+  }
+}
+
+async function getReportEvent(ledgerEvent, secK) {
+  console.log("getReportEvent called.");
+  const pool = new NostrTools.SimplePool();
+  console.log("Get Report Entry events.");
+  function authF(eventA) {
+    console.log("Relay authentication.");
+    return NostrTools.finalizeEvent(eventA, secK);
+  }
+  let relays = getAccountingLedgerRelays(ledgerEvent);
+  console.log("Relays: " + relays);
+  const ledgerCoordinate = "37701:" + ledgerEvent.pubkey + ":" + getAccountingLedgerIdentifier(ledgerEvent);
+  console.log("A-filter: " + ledgerCoordinate);
+  let entries = [];
+  try {
+    // kind 7702 events reference their ledger via an "A" tag
+    console.log("Query sync.");
+    entries = await pool.querySync(relays, {
+      kinds: [7702],
+      "#A": [ledgerCoordinate],
+    });
+    console.log("Received from relay: ");
+    console.log(entries);
+    return entries;
+  } finally {
+    pool.close(relays);
+  }
+  //await delay(2);
+  /*await Promise.any(pool.publish(relays, leEvent, { onauth : authF }));
+  const event = await pool.get(
+    relays,
+    {
+      ids: [ leEvent.id ],
+    },
+  );
+  console.log('Event from Relay: ', event);
+  if(event == null) { 
+    throw "Error when saving on relay!"; 
+  } else {
+    return event;
+  }*/
+}
+
 async function getNwcInfoEvent(nwcConnection) {
   const pool = new NostrTools.SimplePool();
   const relays = [ nwcConnection.relay ];
@@ -145,74 +279,4 @@ async function requestNwcEvent(nwcRequestEv, nwcConnection) {
   } else {
     return respEvent;
   }
-}
-
-async function sendLedgerEntryEvent(leEvent, secK, relays) {
-  const pool = new NostrTools.SimplePool();
-  console.log("Send Ledger Entry event.");
-  function authF(eventA) {
-    console.log("Relay authentication.");
-    return NostrTools.finalizeEvent(eventA, secK);
-  }
-  await Promise.any(pool.publish(relays, leEvent, { onauth : authF }));
-  const event = await pool.get(
-    relays,
-    {
-      ids: [ leEvent.id ],
-    },
-  );
-  console.log('Event from Relay: ', event);
-  if(event == null) { 
-    throw "Error when saving on relay!"; 
-  } else {
-    return event;
-  }
-}
-
-async function getLedgerEntryEvent(ledgerEvent, secK) {
-  const pool = new NostrTools.SimplePool();
-  console.log("Get Ledger Entry events.");
-  function authF(eventA) {
-    console.log("Relay authentication.");
-    return NostrTools.finalizeEvent(eventA, secK);
-  }
-  let relays = getAccountingLedgerRelays(ledgerEvent);
-  console.log("Relays: " + relays);
-  const ledgerCoordinate = "37701:" + ledgerEvent.pubkey + ":" + getAccountingLedgerIdentifier(ledgerEvent);
-  console.log("A-filter: " + ledgerCoordinate);
-  let entries = [];
-  try {
-    // kind 7701 events reference their ledger via an "A" tag
-    console.log("Query sync.");
-    entries = await pool.querySync(relays, {
-      kinds: [7701],
-      "#A": [ledgerCoordinate],
-    });
-    console.log("Received from relay: ");
-    console.log(entries);
-    return entries;
-  } finally {
-    pool.close(relays);
-  }
-  //await delay(2);
-  /*await Promise.any(pool.publish(relays, leEvent, { onauth : authF }));
-  const event = await pool.get(
-    relays,
-    {
-      ids: [ leEvent.id ],
-    },
-  );
-  console.log('Event from Relay: ', event);
-  if(event == null) { 
-    throw "Error when saving on relay!"; 
-  } else {
-    return event;
-  }*/
-}
-
-function delay(n) {
-  console.log("delay called.");
-  return new Promise(function(resolve) {
-    setTimeout(resolve, n * 1000);
-  });
 }

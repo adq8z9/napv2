@@ -31,7 +31,8 @@ async function selectLedger() {
       localStorage.setItem("liKeypair", accountantEvString);
       console.log("Got accountant name: " + accountantName);
       //End set accountant name
-      let liLedger = { naddr: nAddrLedger, id: ledgerEvent.id, naddrShort: nAddrLedgerShort, ledgerName: ledgerEventContent.name};
+      const ledgerRef = "" + nAddrLedgerDec.data.kind + ":" + nAddrLedgerDec.data.pubkey + ":" + nAddrLedgerDec.data.identifier + "";
+      let liLedger = { naddr: nAddrLedger, id: ledgerEvent.id, naddrShort: nAddrLedgerShort, ledgerName: ledgerEventContent.name, reference: ledgerRef };
       let liLedgerEvent = ledgerEvent;
       let liLedgerString = JSON.stringify(liLedger);
       let liLedgerEventString = JSON.stringify(liLedgerEvent);
@@ -59,8 +60,8 @@ async function createExampleLedger() {
   let liKeypairString = localStorage.getItem("liKeypair");
   if(liKeypairString !== null) {
     try {
-      //let creationRelay = "ws://umbrel.local:4848";
-      let creationRelay = "wss://nos.lol";
+      let creationRelay = "ws://umbrel.local:4848";
+      //let creationRelay = "wss://nos.lol";
       let creationRelays = [ creationRelay ];
       console.log("Creation Relay: " + creationRelays);
       let liKeypair = JSON.parse(liKeypairString);
@@ -87,7 +88,9 @@ async function createExampleLedger() {
       localStorage.setItem("liKeypair", accountantEvString);
       console.log("Got accountant name: " + accountantName);
       //End set accountant name
-      let liLedger = { naddr: nAddrC, id: ledgerEvent.id, naddrShort: nAddrCShort, ledgerName: ledgerEventContent.name };
+      let nAddrLedgerDec = NostrTools.nip19.decode(nAddrC);
+      const ledgerRef = "" + nAddrLedgerDec.data.kind + ":" + nAddrLedgerDec.data.pubkey + ":" + nAddrLedgerDec.data.identifier + "";
+      let liLedger = { naddr: nAddrC, id: ledgerEvent.id, naddrShort: nAddrCShort, ledgerName: ledgerEventContent.name, reference: ledgerRef };
       let liLedgerEvent = ledgerEvent;
       let liLedgerString = JSON.stringify(liLedger);
       let liLedgerEventString = JSON.stringify(liLedgerEvent);

@@ -3,14 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>nap · To Be Implemented</title>
-<link rel="icon" type="image/png" href="nap.png">
+<title>nap · View Report</title>
+<script src="index_script_logindata.js"></script>
+<script src="reportView_script.js"></script>
+<script src="nostr_tools.js"></script>
+<script src="index_script_ledger.js"></script>
+<script src="index_script_relaycomm.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --bg: #f5f4f0; --surface: #ffffff; --border: #dddbd4;
   --text: #1a1917; --text2: #6b6860; --text3: #a09e98;
   --accent: #6d28d9; --accent-light: #ede9fe;
+  --warn: #92400e; --warn-bg: #fef3c7;
   --mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
   --max: 560px;
 }
@@ -22,38 +27,76 @@ body { background:var(--bg); color:var(--text); font-family:var(--mono); font-si
 .page { width:100%; max-width:var(--max); display:flex; flex-direction:column; gap:24px; }
 .back-link { font-size:12px; color:var(--text3); text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
 .back-link:hover { color:var(--accent); }
-.tbi-box {
-  background: var(--surface);
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  padding: 48px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  text-align: center;
-}
-.tbi-icon { font-size: 28px; opacity: 0.4; }
-.tbi-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 1.4px;
-  color: var(--text3);
-}
-.tbi-title {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--text2);
-  letter-spacing: -0.3px;
-}
-.tbi-page {
-  font-size: 11px;
-  color: var(--text3);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 3px 10px;
-}
+.section-label { font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--text3); margin-bottom:10px; }
+
+/* status */
+.status-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.status-row { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border); font-size:12px; }
+.status-row:last-child { border-bottom:none; }
+.status-dot { width:7px; height:7px; border-radius:50%; background:var(--border); flex-shrink:0; }
+.status-dot.on { background:var(--accent); }
+.status-key { color:var(--text3); width:80px; flex-shrink:0; }
+.status-val { color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.status-val.active { color:var(--accent); }
+
+/* card */
+.card { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.card-header { padding:12px 16px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.card-body { padding:16px; display:flex; flex-direction:column; gap:12px; }
+
+/* form */
+.form-group { display:flex; flex-direction:column; gap:5px; }
+.form-label { font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text2); }
+.form-input { background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:8px 10px; font-family:var(--mono); font-size:13px; color:var(--text); outline:none; width:100%; transition:border-color 0.15s; }
+.form-input:focus { border-color:var(--accent); }
+.form-input::placeholder { color:var(--text3); }
+
+/* buttons */
+.btn { font-family:var(--mono); font-size:12px; padding:7px 14px; border-radius:5px; cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; gap:6px; border:none; white-space:nowrap; }
+.btn-primary { background:var(--accent); color:#fff; font-weight:500; }
+.btn-primary:hover { background:#5b21b6; }
+.btn-ghost { background:transparent; border:1px solid var(--border); color:var(--text2); }
+.btn-ghost:hover { border-color:var(--accent); color:var(--accent); }
+.btn-row { display:flex; gap:8px; flex-wrap:wrap; }
+
+/* meta rows */
+.meta-row { display:flex; gap:10px; font-size:12px; align-items:baseline; padding:8px 0; border-bottom:1px solid var(--border); }
+.meta-row:last-child { border-bottom:none; }
+.meta-key { color:var(--text3); width:100px; flex-shrink:0; }
+.meta-val { color:var(--text); word-break:break-all; }
+.meta-val.muted { color:var(--text2); }
+.meta-val.mono  { font-size:11px; color:var(--text3); }
+
+/* file section */
+.file-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border); font-size:12px; }
+.file-row:last-child { border-bottom:none; }
+.file-name { color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.file-type { font-size:10px; color:var(--text3); flex-shrink:0; }
+.file-link { color:var(--accent); text-decoration:none; font-size:12px; flex-shrink:0; }
+.file-link:hover { text-decoration:underline; }
+
+/* raw tags */
+.tag-row { display:flex; gap:8px; font-size:11px; padding:5px 0; border-bottom:1px solid var(--border); align-items:baseline; }
+.tag-row:last-child { border-bottom:none; }
+.tag-name { color:var(--accent); width:60px; flex-shrink:0; }
+.tag-vals { color:var(--text2); word-break:break-all; }
+
+/* select dropdown */
+.report-select { background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:8px 10px; font-family:var(--mono); font-size:13px; color:var(--text); outline:none; width:100%; transition:border-color 0.15s; }
+.report-select:focus { border-color:var(--accent); }
+.report-select option { background:var(--surface); }
+
+/* empty */
+.empty-state { background:var(--surface); border:1px dashed var(--border); border-radius:8px; padding:36px 20px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.empty-icon { font-size:24px; opacity:0.3; }
+.empty-text { font-size:12px; color:var(--text3); }
+.empty-link { font-size:12px; color:var(--accent); text-decoration:none; }
+.empty-link:hover { text-decoration:underline; }
+
+/* notice */
+.notice { background:var(--warn-bg); border:1px solid #fcd34d; border-radius:6px; padding:10px 14px; font-size:12px; color:var(--warn); line-height:1.6; }
+
+hr { border:none; border-top:1px solid var(--border); }
 </style>
 </head>
 <body>
@@ -65,31 +108,174 @@ body { background:var(--bg); color:var(--text); font-family:var(--mono); font-si
 
 <main class="page">
 
-  <a class="back-link" id="backLink" href="report.html">← back</a>
+  <a class="back-link" href="report.html">← back</a>
 
-  <div class="tbi-box">
-    <div class="tbi-icon">⧖</div>
-    <div class="tbi-label">not yet implemented</div>
-    <div class="tbi-title" id="pageTitle">to be implemented</div>
-    <div class="tbi-page" id="pageName"></div>
+  <div>
+    <div class="section-label">Current Session</div>
+    <div class="status-card">
+      <div class="status-row">
+        <span class="status-dot" id="accountantDot"></span>
+        <span class="status-key">accountant</span>
+        <span class="status-val" id="accountantVal">not logged in</span>
+      </div>
+      <div class="status-row">
+        <span class="status-dot" id="ledgerDot"></span>
+        <span class="status-key">ledger</span>
+        <span class="status-val" id="ledgerVal">not selected</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">View Report · kind 7702</div>
+    <div id="mainContent">
+      <div class="empty-state">
+        <div class="empty-icon">↗</div>
+        <div class="empty-text">No ledger selected.</div>
+        <a class="empty-link" href="loginLedger.html">Select a ledger →</a>
+      </div>
+    </div>
   </div>
   <img src="nap.png" alt="nap logo" class="nap-img">
 
 </main>
 
 <script>
-  // Usage: link to this page as placeholder.html?title=Ledger+Postings&back=posting.html
-  // or just use it as-is and it will show the current filename
-  const params = new URLSearchParams(window.location.search);
-  const title = params.get('title');
-  const back = params.get('back');
+let allReports = [];
 
-  if (title) document.getElementById('pageTitle').textContent = title;
-  if (back) document.getElementById('backLink').href = back;
+function renderSelector() {
+  const sorted = [...allReports].sort((a,b) => b.created_at - a.created_at);
 
-  const name = window.location.pathname.split('/').pop() || 'this page';
-  document.getElementById('pageName').textContent = name;
-  if (title) document.title = 'nap · ' + title;
+  // check if a report id was passed via URL param
+  const params  = new URLSearchParams(window.location.search);
+  const preselect = params.get('id') || '';
+
+  const options = sorted.map(e => {
+    let eC = JSON.parse(e.content);
+    const name = eC.name || '(unnamed)';
+    const date = new Date(e.created_at * 1000).toISOString().split('T')[0];
+    const sel  = e.id === preselect ? 'selected' : '';
+    return `<option value="${e.id}" ${sel}>${date} · ${name}</option>`;
+  }).join('');
+
+  document.getElementById('mainContent').innerHTML = `
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">Select Report</div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Report</label>
+          <select class="report-select" id="reportSelect" onchange="showReport(this.value)">
+            <option value="">— select a report —</option>
+            ${options}
+          </select>
+        </div>
+      </div>
+    </div>
+    <div id="reportDetail"></div>`;
+
+  if (preselect) showReport(preselect);
+}
+
+function showReport(id) {
+  const detail = document.getElementById('reportDetail');
+  if (!id) { detail.innerHTML = ''; return; }
+
+  const e = allReports.find(r => r.id === id);
+  if (!e) return;
+  console.log("Report selected: ");
+  console.log(e);
+
+  let eC = JSON.parse(e.content);
+  const name    = eC.name        || '(unnamed report)';
+  const desc    = eC.description || '';
+  const date    = new Date(e.created_at * 1000).toISOString().split('T')[0];
+  const ledgerA = tag(e,'A')           || '—';
+
+  // report file references (IMETA or E with 'report' marker)
+  const reportFiles = [];
+  e.tags.forEach(t => {
+    if (t[0] === 'IMETA') {
+      const url  = t[1]?.match(/url\s+(\S+)/)?.[1]  || '';
+      const mime = t[1]?.match(/mime\s+(\S+)/)?.[1] || '';
+      const hash = t[1]?.match(/hash\s+(\S+)/)?.[1] || '';
+      if (url) reportFiles.push({ url, mime, hash, kind:'imeta' });
+    } else if (t[0] === 'E' && t[2] === 'report') {
+      reportFiles.push({ ref: t[1], relay: t[3]||'', kind:'event' });
+    }
+  });
+
+  // data backup references
+  const dataRefs = e.tags.filter(t =>
+    (t[0]==='x') ||
+    (t[0]==='imeta' && t[2]==='data') ||
+    (t[0]==='e'     && t[2]==='data')
+  );
+
+  // raw tags for full transparency
+  const rawTags = e.tags.map(t =>
+    `<div class="tag-row">
+      <span class="tag-name">${t[0]}</span>
+      <span class="tag-vals">${t.slice(1).join(' · ')}</span>
+    </div>`
+  ).join('');
+
+  const fileRows = reportFiles.length
+    ? reportFiles.map(f => f.kind === 'imeta'
+        ? `<div class="file-row">
+             <span class="file-name">${f.url.split('/').pop()}</span>
+             <span class="file-type">${f.mime || 'file'}</span>
+             <a class="file-link" href="${f.url}" target="_blank">open ↗</a>
+           </div>`
+        : `<div class="file-row">
+             <span class="file-name">kind 1063 media event</span>
+             <span class="file-type">event ref</span>
+             <span class="file-type">${f.ref.slice(0,14)}…</span>
+           </div>`
+      ).join('')
+    : '<div style="padding:10px 14px;font-size:12px;color:var(--text3)">no report file attached</div>';
+
+  const dataRows = dataRefs.length
+    ? dataRefs.map(t =>
+        `<div class="file-row">
+           <span class="file-name">${t[0]==='x' ? 'hash ref' : 'event ref'}</span>
+           <span class="file-type">${t[0]}</span>
+           <span class="file-type">${t[1].slice(0,16)}…</span>
+         </div>`
+      ).join('')
+    : '<div style="padding:10px 14px;font-size:12px;color:var(--text3)">no data backup attached</div>';
+
+  detail.innerHTML = `
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">${name}</div>
+      <div class="card-body" style="padding:0 16px">
+        <div class="meta-row"><span class="meta-key">description</span><span class="meta-val">${desc}</span></div>
+        <div class="meta-row"><span class="meta-key">date</span><span class="meta-val">${date}</span></div>
+        <!-- <div class="meta-row"><span class="meta-key">author</span><span class="meta-val mono">${e.pubkey}…</span></div>
+        <div class="meta-row"><span class="meta-key">ledger ref</span><span class="meta-val mono">${ledgerA}…</span></div>
+        <div class="meta-row"><span class="meta-key">event id</span><span class="meta-val mono">${e.id}</span></div> -->
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">Report File</div>
+      ${fileRows}
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">Data File</div>
+      ${dataRows}
+    </div> `;
+}
+
+function tag(event, name) {
+  const t = event.tags.find(t => t[0] === name);
+  return t ? t[1] : '';
+}
+
+function ts(d) { return Math.floor(new Date(d).getTime()/1000); }
+
+updateStatus();
+updateStatus2();
 </script>
 </body>
 </html>
